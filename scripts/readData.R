@@ -14,11 +14,15 @@ dengue2012 = dengue2012[-c(239,222, 281),]
 
 #Read "temp.csv"
 temperatureData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Met_data/temp/temp.csv", data.table = F, header = T, stringsAsFactors = F)
+station_temperatureData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Met_data/temp/station_temperatures.csv", data.table = F, header = T, stringsAsFactors = F)
 
 #Read Population
 populations = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Population/Estimated and Actual Populations in MOH's Srilanka2.csv", data.table = F, header = T, stringsAsFactors = F)
 populations = data.frame(sapply(populations[1:2], as.numeric), populations[3], sapply(populations[4:6], as.numeric))
   
+#Read rainFall 
+rainfallData2013 = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/Met_data/rainfall/rainfall2013.csv", data.table = F, header = T, col.names = c("MOH_name", c(1:52)))
+
 ## Read districts with MOHs
 districtsAndMOHs = fread("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Data/MOH/districts and mohs.csv", data.table = F, header = T, stringsAsFactors = F)
 
@@ -59,3 +63,4 @@ mohs_dengue12 = dengue2012$MOH_name
 mohs_dengue13 = dengue2013$MOH_name
 mohs_vegetation = unique(vegetationIndicesWeekly$MOH_name)
 mohs_mobility = unique(mobilityTrips2013$MOH_NAME)
+mohs_districts = districtsAndMOHs$MOH_name

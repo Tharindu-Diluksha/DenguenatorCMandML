@@ -22,10 +22,11 @@ for (mohName in areas) {
   setTrainingAndTestML(mohName = mohName)
 }
 
-mlModel = trainTheMLmodel(depth = 6, rounds = 1000)
+mlModel = trainTheMLmodel(depth = 6, rounds = 2000)
 
 for (index in 1:length(areas)) {
   area = areas[index]
+  cat("***************** ",area, "   ******************", fill = T)
   predictions = testTheMLmodel(area = area, model = mlModel)
   incidencesPlotsML[[index]] = plotIncidencesGraphML(area = area, predictions = predictions)
 }
