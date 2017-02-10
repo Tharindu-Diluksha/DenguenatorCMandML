@@ -58,7 +58,7 @@ for(d in 2:10) {
   }
 }
 
-modelForParamA = trainTheModel(rounds = bestRounds, depth = bestDepth, verbose = 0)
+modelForParamA = trainTheModel(rounds = 10, depth = 3, verbose = 1, learningRate = 0.01)
 
 incidencesPlotsCM = list()
 imageIndex = 1
