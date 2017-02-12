@@ -17,6 +17,7 @@ areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa")
 areas = c("Kaduwela", "Maharagama", "MC - Colombo", "Moratuwa")
 areas = c("Kaduwela", "Maharagama", "Moratuwa")
 areas = c("MC - Colombo")
+areas = c("Maharagama")
 areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
 areas = moh_in_kandy[(moh_in_kandy %in% mohs_temperature) & 
                (moh_in_kandy %in% mohs_population) &
@@ -59,6 +60,7 @@ for(d in 2:10) {
 }
 
 modelForParamA = trainTheModel(rounds = 10, depth = 3, verbose = 1, learningRate = 0.01)
+modelForParamA = trainTheModel(rounds = 1600, depth = 2, verbose = 1, learningRate = 0.01)
 
 incidencesPlotsCM = list()
 imageIndex = 1

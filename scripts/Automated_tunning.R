@@ -10,6 +10,10 @@ roundsRange = seq(1000, 1600, 200)
 depthRange = 2:10
 learningrateRange = seq(0.005, 0.01, 0.001)
 
+roundsRange = seq(1000, 1600, 200)
+depthRange = 2:10
+learningrateRange = 0.01
+
 for(withIh in 0:1) {
   for(withFeatureReduction in 0:2) {
     for(withMob in 0:1) {
@@ -64,6 +68,7 @@ for(withIh in 0:1) {
     }
   }
 }
+write.csv(optimumvalues, file = paste("optimumValues - ", areas, " - ", date, ".csv"), append = T, row.names = F, col.names = F, sep = ",")
 
 featureReduction = function(reductionCriteria) {
   ## PCorrelation
@@ -117,5 +122,8 @@ getRMSE = function(area) {
   data = data.frame(week = (test$day+1), predicted = as.numeric(denguePredsFor2014[test$day+1-test$day[1]]), actual = as.numeric(dengue2014[dengue2014$MOH_name==area,][test$day+1+2-test$day[1]]))
   R2 <<- 1 - (sum((data$actual-data$predicted )^2)/sum((data$actual-mean(data$actual))^2))
   cat("R2 = ", R2, fill = T)
+  
+  if (is.nan(R2))
+    R2 <<- 0
 }
 

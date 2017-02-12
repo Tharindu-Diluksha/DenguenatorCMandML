@@ -585,10 +585,11 @@ plotIncidencesGraphCM_districts = function(area) {
 
 
 #########################    Functions - for ML model      ################################
-setTrainingAndTestML = function(mohName) {
+setTrainingAndTestML = function(mohName, withcaselags = F, withMobility = F) {
   
   population = populations[populations$MOH_NAME==mohName, ]$actual_POP
   temperature <<- melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
+  rainfall <<- melt(rainfallData2013[rainfallData2013$MOH_name==mohName,][,2:53])$value
   vegetationIndexes = vegetationIndicesWeekly[vegetationIndicesWeekly$MOH_name==mohName,]
   
   #currentMOH <<- data.frame(week = 1:156, cases = 1:156)
@@ -609,16 +610,18 @@ setTrainingAndTestML = function(mohName) {
   ih2013 = 0
   ih2014 = 0
   ih2015 = 0
-  for(i in 1:52) {
-    tempIh12 = unique(results[results$moh_name==mohName & results$year==2012 & results$day==i ,]$best.ih)
-    tempIh13 = unique(results[results$moh_name==mohName & results$year==2013 & results$day==i ,]$best.ih)
-    tempIh14 = unique(test[test$moh_name==mohName & test$year==2014 & test$day==i ,]$best.ih)
+  for(i in 1:51) {
+    tempIh12 = unique(results1[results1$moh_name==mohName & results1$day==i ,]$best.ih)
+    tempIh13 = unique(results2[results2$moh_name==mohName & results2$day==i ,]$best.ih)
+    tempIh14 = unique(test1[test1$moh_name==mohName & test1$day==i ,]$best.ih)
     ih2012[i] = ifelse(length(tempIh12 > 1), sum(tempIh12)/length(tempIh12), tempIh12) 
     ih2013[i] = ifelse(length(tempIh13 > 1), sum(tempIh13)/length(tempIh13), tempIh13) 
     ih2014[i] = ifelse(length(tempIh14 > 1), sum(tempIh14)/length(tempIh14), tempIh14) 
   }
-  ih2011 =  (ih2012+ih2013)/2
-  ih2015 =  (ih2013+ih2014)/2
+  tempIh13 = unique(results2[results2$moh_name==mohName & results2$day==0 ,]$best.ih)
+  tempIh14 = unique(test1[test1$moh_name==mohName & test1$day==0 ,]$best.ih)
+  ih2012[52] = ifelse(length(tempIh13 > 1), sum(tempIh13)/length(tempIh13), tempIh13) 
+  ih2013[52] = ifelse(length(tempIh14 > 1), sum(tempIh14)/length(tempIh14), tempIh14)
   
   currentMOH <<- data.frame(week = 1:156, cases = 1:156, veg_index = 1:156, ih = 1:156)
   currentMOH$cases <<- c(cases2012, cases2013, cases2011)
@@ -626,14 +629,14 @@ setTrainingAndTestML = function(mohName) {
   currentMOH$ih <<- c(ih2012, ih2013, ih2011)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   trainingDataFrame1 <<- data.frame(cases = cases2012, week = 1:52, year = 2012, moh_name = mohName, population = population, stringsAsFactors = F)
-  trainingDataFrame1 <<- setColumnsML(trainingDataFrame1)
+  trainingDataFrame1 <<- setColumnsML(trainingDataFrame1, withcaselags = withcaselags, withMobility = withMobility)
   
   currentMOH$cases <<- c(cases2013, cases2014, cases2012)
   currentMOH$veg_index <<- c(vegIndexes2013, vegIndexes2014, vegIndexes2012)
   currentMOH$ih <<- c(ih2013, ih2014, ih2012)
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   trainingDataFrame2 <<- data.frame(cases = cases2013, week = 1:52, year = 2013, moh_name = mohName, population = population, stringsAsFactors = F)
-  trainingDataFrame2 <<- setColumnsML(trainingDataFrame2)
+  trainingDataFrame2 <<- setColumnsML(trainingDataFrame2, withcaselags = withcaselags, withMobility = withMobility)
   
   currentMOH$cases <<- c(cases2014, cases2015, cases2013)
   currentMOH$veg_index <<- c(vegIndexes2014, vegIndexes2015, vegIndexes2013)
@@ -641,7 +644,7 @@ setTrainingAndTestML = function(mohName) {
   #currentMOH$cases <<- currentMOH$cases/reportingRate
   #results3 = setColumnsML(results3)
   testingDataFrame1 <<- data.frame(cases = cases2014, week = 1:52, year = 2014, moh_name = mohName, population = population, stringsAsFactors = F)
-  testingDataFrame1 <<- setColumnsML(testingDataFrame1)
+  testingDataFrame1 <<- setColumnsML(testingDataFrame1, withcaselags = withcaselags, withMobility = withMobility)
   
   trainingDataFrame <<- joinFrames(trainingDataFrame, trainingDataFrame1)
   trainingDataFrame <<- joinFrames(trainingDataFrame, trainingDataFrame2)
@@ -650,22 +653,24 @@ setTrainingAndTestML = function(mohName) {
   testingDataFrame <<- joinFrames(testingDataFrame, testingDataFrame1)
 }
 
-setColumnsML = function(train_test_dataframe) {
+setColumnsML = function(train_test_dataframe, withcaselags = F, withMobility = F) {
   # Previous cases
   # train_test_dataframe$casesLag4 = currentMOH$cases[circularIndex(train_test_dataframe$week, 4, 156)]
   # train_test_dataframe$casesLag5 = currentMOH$cases[circularIndex(train_test_dataframe$week, 5, 156)]
   # train_test_dataframe$casesLag6 = currentMOH$cases[circularIndex(train_test_dataframe$week, 6, 156)]
   
   # Previous temperatures
-  train_test_dataframe$tempLag2 = temperature[circularIndex(train_test_dataframe$week, 2, 52)]
-  train_test_dataframe$tempLag3 = temperature[circularIndex(train_test_dataframe$week, 3, 52)]
+  # train_test_dataframe$tempLag2 = temperature[circularIndex(train_test_dataframe$week, 2, 52)]
+  # train_test_dataframe$tempLag3 = temperature[circularIndex(train_test_dataframe$week, 3, 52)]
   train_test_dataframe$tempLag4 = temperature[circularIndex(train_test_dataframe$week, 4, 52)]
-  # train_test_dataframe$tempLag5 = temperature[circularIndex(train_test_dataframe$week, 5, 52)]
-  # train_test_dataframe$tempLag6 = temperature[circularIndex(train_test_dataframe$week, 6, 52)]
-  # train_test_dataframe$tempLag7 = temperature[circularIndex(train_test_dataframe$week, 7, 52)]
+  train_test_dataframe$tempLag5 = temperature[circularIndex(train_test_dataframe$week, 5, 52)]
+  train_test_dataframe$tempLag6 = temperature[circularIndex(train_test_dataframe$week, 6, 52)]
+  train_test_dataframe$tempLag7 = temperature[circularIndex(train_test_dataframe$week, 7, 52)]
   train_test_dataframe$tempLag8 = temperature[circularIndex(train_test_dataframe$week, 8, 52)]
   train_test_dataframe$tempLag9 = temperature[circularIndex(train_test_dataframe$week, 9, 52)]
   train_test_dataframe$tempLag10 = temperature[circularIndex(train_test_dataframe$week, 10, 52)]
+  train_test_dataframe$tempLag11 = temperature[circularIndex(train_test_dataframe$week, 11, 52)]
+  # train_test_dataframe$tempLag12 = temperature[circularIndex(train_test_dataframe$week, 10, 52)]
   
   #Factorized mobility values
   current.moh.name = unique(train_test_dataframe$moh_name)
@@ -692,40 +697,57 @@ setColumnsML = function(train_test_dataframe) {
     mobilityMOH$cases = c(cases2014, cases2015, cases2013)
     #mobilityMOH$cases = mobilityMOH$cases/reportingRate
   }
-  # train_test_dataframe$mobilityLag2 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 2, 156)]
-  # train_test_dataframe$mobilityLag3 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 3, 156)]
-  # train_test_dataframe$mobilityLag4 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 4, 156)]
-  # # train_test_dataframe$mobilityLag5 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 5, 156)]
-  # # train_test_dataframe$mobilityLag6 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 6, 156)]
-  # # train_test_dataframe$mobilityLag7 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 7, 156)]
-  # train_test_dataframe$mobilityLag8 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 8, 156)]
-  # train_test_dataframe$mobilityLag9 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 9, 156)]
-  # train_test_dataframe$mobilityLag10 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 10, 156)]
-
+  
+  if(withMobility) {
+    # train_test_dataframe$mobilityLag2 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 2, 156)]
+    # train_test_dataframe$mobilityLag3 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 3, 156)]
+    train_test_dataframe$mobilityLag4 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 4, 156)]
+    train_test_dataframe$mobilityLag5 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 5, 156)]
+    train_test_dataframe$mobilityLag6 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 6, 156)]
+    train_test_dataframe$mobilityLag7 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 7, 156)]
+    train_test_dataframe$mobilityLag8 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 8, 156)]
+    train_test_dataframe$mobilityLag9 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 9, 156)]
+    train_test_dataframe$mobilityLag10 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 10, 156)]
+    train_test_dataframe$mobilityLag11 = mobilityMOH$cases[circularIndex(train_test_dataframe$week, 11, 156)]
+    
+  }
+  
   ## Ih lags
-  # train_test_dataframe$ihLag2 = currentMOH$ih[circularIndex(train_test_dataframe$week, 2, 156)]
-  train_test_dataframe$ihLag3 = currentMOH$ih[circularIndex(train_test_dataframe$week, 3, 156)]
-  train_test_dataframe$ihLag4 = currentMOH$ih[circularIndex(train_test_dataframe$week, 4, 156)]
-  train_test_dataframe$ihLag5 = currentMOH$ih[circularIndex(train_test_dataframe$week, 5, 156)]
-  # train_test_dataframe$ihLag6 = currentMOH$ih[circularIndex(train_test_dataframe$week, 6, 156)]
-  # train_test_dataframe$ihLag7 = currentMOH$ih[circularIndex(train_test_dataframe$week, 7, 156)]
-  # train_test_dataframe$ihLag8 = currentMOH$ih[circularIndex(train_test_dataframe$week, 8, 156)]
-  train_test_dataframe$ihLag9 = currentMOH$ih[circularIndex(train_test_dataframe$week, 9, 156)]
-  # train_test_dataframe$ihLag10 = currentMOH$ih[circularIndex(train_test_dataframe$week, 10, 156)]
-  train_test_dataframe$ihLag11 = currentMOH$ih[circularIndex(train_test_dataframe$week, 11, 156)]
-  train_test_dataframe$ihLag12 = currentMOH$ih[circularIndex(train_test_dataframe$week, 12, 156)]
-
+  ih = currentMOH$ih[!(is.na(currentMOH$ih))]
+  numberOfElementsInArray = length(ih)
+  
+  if(withcaselags) {
+    # training_test_dataframe$ihLag3 = ih[circularIndex(training_test_dataframe$day, 3, numberOfElementsInArray)]
+    training_test_dataframe$ihLag4 = ih[circularIndex(training_test_dataframe$week, 4, numberOfElementsInArray)]
+    training_test_dataframe$ihLag5 = ih[circularIndex(training_test_dataframe$week, 5, numberOfElementsInArray)]
+    training_test_dataframe$ihLag6 = ih[circularIndex(training_test_dataframe$week, 6, numberOfElementsInArray)]
+    training_test_dataframe$ihLag7 = ih[circularIndex(training_test_dataframe$week, 7, numberOfElementsInArray)]
+  }
   
   ##Vegetation index lags
-  train_test_dataframe$vegIndexLag2 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 2, 156)]
-  train_test_dataframe$vegIndexLag3 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 3, 156)]
+  # train_test_dataframe$vegIndexLag2 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 2, 156)]
+  # train_test_dataframe$vegIndexLag3 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 3, 156)]
   train_test_dataframe$vegIndexLag4 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 4, 156)]
   train_test_dataframe$vegIndexLag5 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 5, 156)]
   train_test_dataframe$vegIndexLag6 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 6, 156)]
-  # train_test_dataframe$vegIndexLag7 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 7, 156)]
-  # train_test_dataframe$vegIndexLag8 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 8, 156)]
+  train_test_dataframe$vegIndexLag7 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 7, 156)]
+  train_test_dataframe$vegIndexLag8 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 8, 156)]
   train_test_dataframe$vegIndexLag9 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 9, 156)]
-  # train_test_dataframe$vegIndexLag10 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 10, 156)]
+  train_test_dataframe$vegIndexLag10 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 10, 156)]
+  train_test_dataframe$vegIndexLag11 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 11, 156)]
+  # train_test_dataframe$vegIndexLag12 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 12, 156)]
+  
+  ## Rainfall
+  training_test_dataframe$rainfallLag4 = rainfall[circularIndex(training_test_dataframe$week, 4, 52)]
+  training_test_dataframe$rainfallLag5 = rainfall[circularIndex(training_test_dataframe$week, 5, 52)]
+  training_test_dataframe$rainfallLag6 = rainfall[circularIndex(training_test_dataframe$week, 6, 52)]
+  training_test_dataframe$rainfallLag7 = rainfall[circularIndex(training_test_dataframe$week, 7, 52)]
+  training_test_dataframe$rainfallLag8 = rainfall[circularIndex(training_test_dataframe$week, 8, 52)]
+  training_test_dataframe$rainfallLag9 = rainfall[circularIndex(training_test_dataframe$week, 9, 52)]
+  training_test_dataframe$rainfallLag10 = rainfall[circularIndex(training_test_dataframe$week, 10, 52)]
+  training_test_dataframe$rainfallLag11 = rainfall[circularIndex(training_test_dataframe$week, 11, 52)]
+  # training_test_dataframe$rainfallLag12 = rainfall[circularIndex(training_test_dataframe$week, 12, 52)]
+  
   
   return(train_test_dataframe)
 }
@@ -733,8 +755,8 @@ setColumnsML = function(train_test_dataframe) {
 plotIncidencesGraphML = function(area, predictions) {
   tempTestML = testingDataFrame[testingDataFrame$moh_name==area,]
   dataML = data.frame(week = tempTestML$week, predicted = predictions, actual = tempTestML$cases)
-  R2 = 1 - (sum((dataML$actual-dataML$predicted )^2)/sum((dataML$actual-mean(dataML$actual))^2))
-  RMSE = rmse(predicted = dataML$predicted, actual = dataML$actual)
+  R2 <<- 1 - (sum((dataML$actual-dataML$predicted )^2)/sum((dataML$actual-mean(dataML$actual))^2))
+  RMSE <<- rmse(predicted = dataML$predicted, actual = dataML$actual)
   
   dmelt = melt(dataML, id = "week")
   title = paste("Dengue Incidences ", unique(tempTestML$year), " - ", area, " R-squared = ", round(R2, digits = 5), ", RMSE = ", round(RMSE, digits = 5))
