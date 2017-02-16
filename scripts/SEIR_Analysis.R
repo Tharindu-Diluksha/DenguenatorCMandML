@@ -113,13 +113,13 @@ calculateDengueDynamicsRecursively = function(seirDataFrame, gap = 4) {
 
 setTrainingAndTest = function(resultLocation, testLocation, mohName, withmobility = T, withcaselags = F) {
   results1 <<- fread(paste(resultLocation,"SEIRAnalysis2012.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
-  results2 <<- fread(paste(resultLocation,"SEIRAnalysis2013.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
+  # results2 <<- fread(paste(resultLocation,"SEIRAnalysis2013.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
   #results3 = fread(paste(resultLocation,"SEIRAnalysis2014.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
-  test1 <<- fread(paste(testLocation,"SEIRAnalysis2014TEST.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
-  # test1 <<- fread(paste(testLocation,"SEIRAnalysis2013TEST.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
+  # test1 <<- fread(paste(testLocation,"SEIRAnalysis2014TEST.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
+  test1 <<- fread(paste(testLocation,"SEIRAnalysis2013TEST.csv",sep = "/"), data.table = F, header = T, stringsAsFactors = F)
   
   results1 <<- data.frame(sapply(results1[1:7], as.numeric), results1[8], sapply(results1[9], as.numeric), stringsAsFactors = F)
-  results2 <<- data.frame(sapply(results2[1:7], as.numeric), results2[8], sapply(results2[9], as.numeric), stringsAsFactors = F)
+  # results2 <<- data.frame(sapply(results2[1:7], as.numeric), results2[8], sapply(results2[9], as.numeric), stringsAsFactors = F)
   #results3 <- data.frame(sapply(results3[1:7], as.numeric), results3[8], sapply(results2[9], as.numeric), stringsAsFactors = F)
   test1 <<- data.frame(sapply(test1[1:7], as.numeric), test1[8], sapply(test1[9], as.numeric), stringsAsFactors = F)
   
@@ -127,9 +127,9 @@ setTrainingAndTest = function(resultLocation, testLocation, mohName, withmobilit
   # results2 <<- results2[-(grep("moh_name", results2$moh_name)),]
   # test1 <<- test1[-(grep("moh_name", test1$moh_name)),]
   
-  # results2 <<- results1[results1$year==2013,]
-  # results1 <<- results1[results1$year==2012,]
-  # test1 <<- test1[test1$year==2014,]
+  results2 <<- results1[results1$year==2013,]
+  results1 <<- results1[results1$year==2012,]
+  test1 <<- test1[test1$year==2014,]
 
   temperature <<- melt(temperatureData2013[temperatureData2013$MOH_name==mohName,][,3:54])$value
   rainfall <<- melt(rainfallData2013[rainfallData2013$MOH_name==mohName,][,2:53])$value
@@ -474,7 +474,7 @@ plotIncidencesGraphCM = function(area) {
          aes(x = week, y = value, color = variable, shape=variable)) +
     xlab("Week") +
     ylab("Incidences") +
-    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title=element_text(size=13), legend.title = element_text(size = 11), legend.text = element_text(size = 11)) +
+    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title=element_text(size=13), legend.title = element_blank(), legend.text = element_text(size = 11)) +
     geom_line(size = 1) +
     geom_point(size = 2.5)+
     ggtitle(title, subtitle = subtitle) +
@@ -485,7 +485,7 @@ plotIncidencesGraphCM = function(area) {
 }
 
 ## Changed titles
-plotIncidencesGraphCM2 = function(area) {
+plotIncidencesGraphCM2 = function(area, withYaxis = F) {
   denguePredsFor2014 <<- SEIR$eh*gammah*reportingRate
   RMSLE <<- rmsle(predicted = as.numeric(denguePredsFor2014[test$day+1-test$day[1]]), actual = as.numeric(dengue2014[dengue2014$MOH_name==area,][test$day+1+2-test$day[1]]))
   RMSE <<- rmse(predicted = as.numeric(denguePredsFor2014[test$day+1-test$day[1]]), actual = as.numeric(dengue2014[dengue2014$MOH_name==area,][test$day+1+2-test$day[1]]))
@@ -504,13 +504,17 @@ plotIncidencesGraphCM2 = function(area) {
                            aes(x = week, y = value, color = variable, shape=variable)) +
     xlab("Week") +
     ylab("Incidences") +
-    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title=element_text(size=14), legend.title = element_text(size = 12), legend.text = element_text(size = 12)) +
+    theme(axis.text = element_text(size = 11), axis.title = element_text(size = 13)) +
+    theme(legend.title = element_blank(), legend.text = element_text(size = 11)) +
     geom_line(size = 1) +
     geom_point(size = 2.5)+
     ggtitle(title, subtitle = subtitle) +
     theme(plot.title = element_text(hjust = 0.5, size = 13, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 11))+
     guides(colour = guide_legend(override.aes = list(size=2,linetype=0)))
-    # + legend(col = c("r", "b"))
+  
+  if(!withYaxis) {
+    incidencesPlot <- incidencesPlot + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank())    
+  }
   return(incidencesPlot)
 }
 
@@ -541,8 +545,34 @@ plotParamA = function(area) {
     geom_line(size = 1) +
     geom_point(size = 2.5)+
     ggtitle(title, subtitle = subtitle) +
-    theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))+
+    guides(colour = guide_legend(override.aes = list(size=2,linetype=0)))
+}
+
+plotParamA_researchpaper = function(area, fromActualDataSet = F) {
+  ggplot.data = data.frame(week = tempTest$day, predicted = pred, actual = tempTest$best.a)
+  dmelt = melt(ggplot.data, id = "week")
+  test.rmsle = rmsle(predicted = ggplot.data$predicted, actual = ggplot.data$actual)
+  R2 = 1 - (sum((ggplot.data$actual-ggplot.data$predicted )^2)/sum((ggplot.data$actual-mean(ggplot.data$actual))^2))
   
+  title = paste("Parameter \u03c1 of ", area, " for ", unique(tempTest$year), " vs Week of the year")
+  if(fromActualDataSet) {
+    title = paste("Parameter \u03c1 of ", area, " for ", unique(tempTest$year), " vs Week of the year")
+  }
+  subtitle = paste("R-squared = ", round(R2, digits = 5), ", RMSLE = ", round(test.rmsle, digits = 5))
+  
+  ggplot(data = dmelt, 
+         aes(x = week, y = value, color = variable, shape=variable)) +
+    xlab("Week") +
+    ylab(expression(rho)) +
+    # theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+    theme(axis.text.y = element_text(size = 11), axis.text.x = element_text(size = 11), axis.title.x = element_text(size = 13), axis.title.y = element_text(size = 13)) +
+    theme(legend.title = element_blank(), legend.text = element_text(size = 11)) +
+    geom_line(size = 1) +
+    geom_point(size = 2.5)+
+    ggtitle(title, subtitle = subtitle) +
+    theme(plot.title = element_text(hjust = 0.5, size = 13, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 11))+
+    guides(colour = guide_legend(override.aes = list(size=2,linetype=0)))
 }
 
 plotIncidencesGraphCM_districts = function(area) {
@@ -583,6 +613,30 @@ plotIncidencesGraphCM_districts = function(area) {
   return(incidencesPlot)
 }
 
+## Generate the Ih vs week graph
+plotIhVsWeeks = function(area, weeks, y, year, withYaxis = F) {
+  ggplot.data = data.frame(week = weeks, actual = y)
+  dmelt = melt(ggplot.data, id = "week")
+  
+  title = paste("Infected humans in ", area, " for ", year, " vs Week of the year")
+  
+  plot_1 <- ggplot(data = dmelt, 
+         aes(x = week, y = value)) +
+    xlab("Week") +
+    ylab("Infected humans") +
+    theme(axis.text.y = element_text(size = 11), axis.text.x = element_text(size = 11), axis.title.x = element_text(size = 13), axis.title.y = element_text(size = 13)) +
+    theme(legend.title = element_blank(), legend.text = element_text(size = 11)) +
+    geom_point(alpha = 0.25)+
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5, size = 13, face = "bold"))
+  
+  if(!withYaxis) {
+    plot_1 <- plot_1 + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank())    
+  }
+  
+  return(plot_1)
+}
+
 
 #########################    Functions - for ML model      ################################
 setTrainingAndTestML = function(mohName, withcaselags = F, withMobility = F) {
@@ -611,17 +665,23 @@ setTrainingAndTestML = function(mohName, withcaselags = F, withMobility = F) {
   ih2014 = 0
   ih2015 = 0
   for(i in 1:51) {
-    tempIh12 = unique(results1[results1$moh_name==mohName & results1$day==i ,]$best.ih)
-    tempIh13 = unique(results2[results2$moh_name==mohName & results2$day==i ,]$best.ih)
-    tempIh14 = unique(test1[test1$moh_name==mohName & test1$day==i ,]$best.ih)
+    tempIh12 = unique(results[results$year==2012 & results$moh_name==mohName & results$day==i ,]$best.ih)
+    tempIh13 = unique(results[results$year==2013 & results$moh_name==mohName & results$day==i ,]$best.ih)
+    tempIh14 = unique(test[test$year==2014 & test$moh_name==mohName & test$day==i ,]$best.ih)
     ih2012[i] = ifelse(length(tempIh12 > 1), sum(tempIh12)/length(tempIh12), tempIh12) 
     ih2013[i] = ifelse(length(tempIh13 > 1), sum(tempIh13)/length(tempIh13), tempIh13) 
     ih2014[i] = ifelse(length(tempIh14 > 1), sum(tempIh14)/length(tempIh14), tempIh14) 
   }
-  tempIh13 = unique(results2[results2$moh_name==mohName & results2$day==0 ,]$best.ih)
-  tempIh14 = unique(test1[test1$moh_name==mohName & test1$day==0 ,]$best.ih)
-  ih2012[52] = ifelse(length(tempIh13 > 1), sum(tempIh13)/length(tempIh13), tempIh13) 
-  ih2013[52] = ifelse(length(tempIh14 > 1), sum(tempIh14)/length(tempIh14), tempIh14)
+  tempIh12 = unique(results[results$year==2012 & results$moh_name==mohName & results$day==52 ,]$best.ih)
+  tempIh13 = unique(results[results$year==2013 & results$moh_name==mohName & results$day==52 ,]$best.ih)
+  # tempIh14 = unique(test[test$year==2014 & test$moh_name==mohName & test$day==0 ,]$best.ih)
+  ih2012[52] = ifelse(length(tempIh12 > 1), sum(tempIh12)/length(tempIh12), tempIh12) 
+  ih2013[52] = ifelse(length(tempIh13 > 1), sum(tempIh13)/length(tempIh13), tempIh13)
+  
+  ih2011 =  (ih2012+ih2013)/2
+  ih2015 =  (ih2013[1:51]+ih2014)/2
+  ih2015[52] = NA
+  ih2014[52] = NA
   
   currentMOH <<- data.frame(week = 1:156, cases = 1:156, veg_index = 1:156, ih = 1:156)
   currentMOH$cases <<- c(cases2012, cases2013, cases2011)
@@ -717,11 +777,11 @@ setColumnsML = function(train_test_dataframe, withcaselags = F, withMobility = F
   numberOfElementsInArray = length(ih)
   
   if(withcaselags) {
-    # training_test_dataframe$ihLag3 = ih[circularIndex(training_test_dataframe$day, 3, numberOfElementsInArray)]
-    training_test_dataframe$ihLag4 = ih[circularIndex(training_test_dataframe$week, 4, numberOfElementsInArray)]
-    training_test_dataframe$ihLag5 = ih[circularIndex(training_test_dataframe$week, 5, numberOfElementsInArray)]
-    training_test_dataframe$ihLag6 = ih[circularIndex(training_test_dataframe$week, 6, numberOfElementsInArray)]
-    training_test_dataframe$ihLag7 = ih[circularIndex(training_test_dataframe$week, 7, numberOfElementsInArray)]
+    # train_test_dataframe$ihLag3 = ih[circularIndex(train_test_dataframe$day, 3, numberOfElementsInArray)]
+    train_test_dataframe$ihLag4 = ih[circularIndex(train_test_dataframe$week, 4, numberOfElementsInArray)]
+    train_test_dataframe$ihLag5 = ih[circularIndex(train_test_dataframe$week, 5, numberOfElementsInArray)]
+    train_test_dataframe$ihLag6 = ih[circularIndex(train_test_dataframe$week, 6, numberOfElementsInArray)]
+    train_test_dataframe$ihLag7 = ih[circularIndex(train_test_dataframe$week, 7, numberOfElementsInArray)]
   }
   
   ##Vegetation index lags
@@ -738,15 +798,15 @@ setColumnsML = function(train_test_dataframe, withcaselags = F, withMobility = F
   # train_test_dataframe$vegIndexLag12 = currentMOH$veg_index[circularIndex(train_test_dataframe$week, 12, 156)]
   
   ## Rainfall
-  training_test_dataframe$rainfallLag4 = rainfall[circularIndex(training_test_dataframe$week, 4, 52)]
-  training_test_dataframe$rainfallLag5 = rainfall[circularIndex(training_test_dataframe$week, 5, 52)]
-  training_test_dataframe$rainfallLag6 = rainfall[circularIndex(training_test_dataframe$week, 6, 52)]
-  training_test_dataframe$rainfallLag7 = rainfall[circularIndex(training_test_dataframe$week, 7, 52)]
-  training_test_dataframe$rainfallLag8 = rainfall[circularIndex(training_test_dataframe$week, 8, 52)]
-  training_test_dataframe$rainfallLag9 = rainfall[circularIndex(training_test_dataframe$week, 9, 52)]
-  training_test_dataframe$rainfallLag10 = rainfall[circularIndex(training_test_dataframe$week, 10, 52)]
-  training_test_dataframe$rainfallLag11 = rainfall[circularIndex(training_test_dataframe$week, 11, 52)]
-  # training_test_dataframe$rainfallLag12 = rainfall[circularIndex(training_test_dataframe$week, 12, 52)]
+  train_test_dataframe$rainfallLag4 = rainfall[circularIndex(train_test_dataframe$week, 4, 52)]
+  train_test_dataframe$rainfallLag5 = rainfall[circularIndex(train_test_dataframe$week, 5, 52)]
+  train_test_dataframe$rainfallLag6 = rainfall[circularIndex(train_test_dataframe$week, 6, 52)]
+  train_test_dataframe$rainfallLag7 = rainfall[circularIndex(train_test_dataframe$week, 7, 52)]
+  train_test_dataframe$rainfallLag8 = rainfall[circularIndex(train_test_dataframe$week, 8, 52)]
+  train_test_dataframe$rainfallLag9 = rainfall[circularIndex(train_test_dataframe$week, 9, 52)]
+  train_test_dataframe$rainfallLag10 = rainfall[circularIndex(train_test_dataframe$week, 10, 52)]
+  train_test_dataframe$rainfallLag11 = rainfall[circularIndex(train_test_dataframe$week, 11, 52)]
+  # train_test_dataframe$rainfallLag12 = rainfall[circularIndex(train_test_dataframe$week, 12, 52)]
   
   
   return(train_test_dataframe)

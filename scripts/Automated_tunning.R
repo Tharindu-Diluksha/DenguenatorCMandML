@@ -10,13 +10,16 @@ roundsRange = seq(1000, 1600, 200)
 depthRange = 2:10
 learningrateRange = seq(0.005, 0.01, 0.001)
 
-roundsRange = seq(1000, 1600, 200)
-depthRange = 2:10
-learningrateRange = 0.01
+roundsRange = seq(1200, 1600, 200)
+depthRange = 3:10
+learningrateRange = 0.007
+withIhChoices = 1
+withMobChoices = 0:1
+featureReductionMethods = 0:2
 
-for(withIh in 0:1) {
-  for(withFeatureReduction in 0:2) {
-    for(withMob in 0:1) {
+for(withIh in withIhChoices) {
+  for(withFeatureReduction in featureReductionMethods) {
+    for(withMob in withMobChoices) {
       
       
       results = data.frame()
@@ -127,3 +130,70 @@ getRMSE = function(area) {
     R2 <<- 0
 }
 
+
+
+
+
+## for many MOH areas....
+date = "Sun Feb 12 22:55:10 IST 2017"
+areas_2 = c("Dehiwala","Maharagama","MC - Colombo", "Moratuwa", "Kaduwela", "Piliyandala", "Homagama","Kollonnawa", "Nugegoda", "Padukka", "Boralesgamuwa", "Hanwella")
+for (variable in areas_2) {
+  areas = variable
+  optimumvalues = data.frame(withIh = numeric(0), withMob = numeric(0), withFeatureReduction = numeric(0), bestRounds = numeric(0), bestDepth = numeric(0), bestLearningRate = numeric(0), bestRMSE = numeric(0), bestR2 = numeric(0))
+  optValsIndex = 1
+  for(withIh in 0:1) {
+    for(withFeatureReduction in 0:2) {
+      for(withMob in 0:1) {
+        
+        
+        results = data.frame()
+        test = data.frame()
+        for (moh in areas) {
+          cat("***************** ",moh, "   ******************    withIh = ", withIh, ", withMob = ", withMob, ", withFeatureReduction = ", withFeatureReduction, fill = T)
+          resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/", moh, sep = '')
+          setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, mohName = moh, withmobility = withMob, withcaselags = withIh)
+        }
+        
+        if(withFeatureReduction != 0) {
+          featureReduction(withFeatureReduction)
+        }
+        
+        R2 <<- 0
+        bestR2 = 0
+        bestRMSE = 0
+        bestDepth = 0
+        bestRounds = 0
+        bestLearningRate = 0
+        
+        
+        for(rounds in roundsRange) {
+          for(depth in depthRange) {
+            for(learningrate in learningrateRange) {
+              modelForParamA = trainTheModel(rounds = rounds, depth = depth, learningRate = learningrate, verbose = 0, threads = 4)
+              
+              for (moh in areas) {
+                cat("***************** ",moh, "   ******************", fill = T)
+                predictSEIR(area = moh)
+                getRMSE(area = moh)
+              }
+              
+              if(R2 > bestR2) {
+                bestR2 <<- R2
+                bestRMSE <<- RMSE
+                bestRounds <<- rounds
+                bestDepth <<- depth
+                bestLearningRate <<- learningrate
+              }      
+            }  
+          }  
+        }  
+        # line = data.frame(1)
+        # line[1:8] = NA
+        optimumvalues[optValsIndex,] = c(withIh, withMob, withFeatureReduction, bestRounds, bestDepth, bestLearningRate, bestRMSE, bestR2)
+        optValsIndex <<- optValsIndex+1
+        # write.table(line, file = "results.csv", append = T, row.names = F, col.names = F, sep = ",")
+      }
+    }
+  }
+  write.csv(optimumvalues, file = paste("optimumValues - ", areas, " - ", date, ".csv"), append = T, row.names = F, col.names = F, sep = ",")
+}

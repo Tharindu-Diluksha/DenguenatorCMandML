@@ -54,3 +54,10 @@ for(area in areas) {
   multiplot(shPlot, ehPlot, ihPlotInARange, rhPlot, cols = 2, main = paste(mohName, " - ", year))
   
 }
+
+
+year = 2012
+ihVsWeek2012 = plotIhVsWeeks("MC - Colombo", results[results$year==year,]$day, results[results$year==year,]$best.ih, year, withYaxis = T)
+year = 2013
+ihVsWeek2013 = plotIhVsWeeks("MC - Colombo", results[results$year==year,]$day, results[results$year==year,]$best.ih, year, withYaxis = T)
+multiplot2(ihVsWeek2012, ihVsWeek2013, cols = 1)

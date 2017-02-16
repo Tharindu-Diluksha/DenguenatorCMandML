@@ -19,7 +19,7 @@ areas = moh_in_kandy[(moh_in_kandy %in% mohs_temperature) &
                      ]
 for (mohName in areas) {
   cat("***************** ",mohName, "   ******************", fill = T)
-  setTrainingAndTestML(mohName = mohName)
+  setTrainingAndTestML(mohName = mohName, withcaselags = T)
 }
 
 mlModel = trainTheMLmodel(depth = 6, rounds = 2000)
