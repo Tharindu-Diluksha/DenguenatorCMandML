@@ -9,6 +9,132 @@ date = "Fri Feb 03 07:01:18 IST 2017" ## All with one iteration, reportingRate=0
 date = "Thu Feb 02 19:24:15 IST 2017" ## All with one iteration, reportingRate=0.04, gammah=3.5, sigmah=0.8400000000000003
 date = "Thu Nov 02 14:37:15 IST 2017"
 
+#Run all areas at once
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Nugegoda", "Kelaniya", "Wattala")
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
+areas = c("Panadura", "Kaduwela", "Kollonnawa", "Boralesgamuwa", "Nugegoda", "Piliyandala", "Kelaniya", "Wattala", "Homagama")
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa", "Kaduwela", "Kollonnawa", "Nugegoda", "Kelaniya", "Wattala")
+areas = c("MC - Colombo", "Dehiwala", "Maharagama", "Panadura", "Moratuwa")
+areas = c("Kaduwela", "Maharagama", "MC - Colombo", "Moratuwa")
+areas = c("Kaduwela", "Maharagama", "Moratuwa")
+areas = c("MC - Colombo")
+areas = c("Maharagama")
+areas = c("Dehiwala")
+areas = c("Moratuwa")
+areas = moh_in_colombo[moh_in_colombo %in% mohs_population]
+areas = moh_in_kandy[(moh_in_kandy %in% mohs_temperature) & 
+               (moh_in_kandy %in% mohs_population) &
+               (moh_in_kandy %in% mohs_mobility) &
+               (moh_in_kandy %in% mohs_dengue12) &
+               (moh_in_kandy %in% mohs_dengue13)
+             ]
+results = data.frame()
+test = data.frame()
+for (moh in areas) {
+  cat("***************** ",moh, "   ******************", fill = T)
+  resultLocation = paste("/media/suchira/0A9E051F0A9E051F/CSE 2012/Semester 07-08/FYP/Denguenator/Dengunator 2.0/Application/DenguenatorAnalysis/results/", date, "/", moh, sep = '')
+  setTrainingAndTest(resultLocation = resultLocation, testLocation = resultLocation, mohName = moh, withmobility = T, withcaselags = F)
+}
+
+## Tunning the XGB model
+R2 <<- 0
+bestR2 = 0
+bestDepth = 0
+bestRounds = 0
+for(d in 2:10) {
+  for (r in seq(1000, 1600, 200)) {
+    modelForParamA = trainTheModel(rounds = r, depth = d, verbose = 0)
+    
+    incidencesPlotsCM = list()
+    imageIndex = 1
+    for (moh in areas) {
+      cat("***************** ",moh, "   ******************", fill = T)
+      predictSEIR(area = moh)
+      incidencesPlotsCM[[imageIndex]] = plotIncidencesGraphCM(area = moh)
+      imageIndex = imageIndex + 1
+    }
+    
+    if(R2 > bestR2) {
+      bestR2 <<- R2
+      bestRounds <<- r
+      bestDepth <<- d
+    }
+  }
+}
+
+modelForParamA = trainTheModel(rounds = 10, depth = 3, verbose = 1, learningRate = 0.01)
+modelForParamA = trainTheModel(rounds = 1400, depth = 9, verbose = 1, learningRate = 0.006)
+
+incidencesPlotsCM = list()
+imageIndex = 1
+for (moh in areas) {
+  cat("***************** ",moh, "   ******************", fill = T)
+  predictSEIR(area = moh)
+  incidencesPlotsCM[[imageIndex]] = plotIncidencesGraphCM(area = moh)
+  imageIndex = imageIndex + 1
+}
+incidencesPlotsCM
+
+paraApred = plotParamA(areas)
+testTheModel(areas, model = modelForParamA)
+paraApred_direct = plotParamA(areas)
+
+colNames = colnames(inputs)
+importancePlotCM = plotImportanceGraph(featureNames = colNames, model = modelForParamA)
+
+
+## Plots for research paper
+incidencesPlotsCM_researpaper = list()
+incidencesPlotsCM_withY_researpaper = list()
+imageIndex = 1
+for (moh in areas) {
+  cat("***************** ",moh, "   ******************", fill = T)
+  predictSEIR(area = moh)
+  incidencesPlotsCM_researpaper[[imageIndex]] = plotIncidencesGraphCM2(area = moh)
+  incidencesPlotsCM_withY_researpaper[[imageIndex]] = plotIncidencesGraphCM2(area = moh, withYaxis = T)
+  
+  imageIndex = imageIndex + 1
+}
+paraApred_researchpaper = plotParamA_researchpaper(areas)
+testTheModel(areas, model = modelForParamA)
+paraApred_direct_researchpaper = plotParamA_researchpaper(areas)
+
+#  Save plots SVG
+folderPath = file.path("images", "compartmental model", "research paper", date, "n-1400 d-9 l-0.007")
+dir.create(folderPath, recursive = T)
+for (moh in areas) {
+  incidencesPlot = incidencesPlotsCM[[grep(moh, areas)]]
+  
+  path = file.path(folderPath, incidencesPlot$labels$title)
+  ggsave(filename = paste(path, ".svg", sep = ""), plot = incidencesPlot, width = 14.23, height = 8, units = "in", dpi = 96)
+  
+  path = file.path(folderPath, paraApred$labels$title)
+  ggsave(filename = paste(path, ".svg", sep = ""), plot = paraApred, width = 14.23, height = 8, units = "in", dpi = 96)
+  
+  path = file.path(folderPath, paraApred_direct$labels$title)
+  ggsave(filename = paste(path, ".svg", sep = ""), plot = paraApred_direct, width = 14.23, height = 8, units = "in", dpi = 96)
+}
+
+#  Save plots JPEG and PNG
+for (moh in areas) {
+  incidencesPlot = incidencesPlotsCM_researpaper[[grep(moh, areas)]]
+  
+  path = file.path(folderPath, incidencesPlot$labels$title)
+  
+  ggsave(filename = paste(path, ".jpeg", sep = ""), plot = incidencesPlot, dpi = 96)
+  ggsave(filename = paste(path, ".png", sep = ""), plot = incidencesPlot, dpi = 96)
+  
+  incidencesPlot = incidencesPlotsCM_withY_researpaper[[grep(moh, areas)]]
+  ggsave(filename = paste(path, "_withY", ".jpeg", sep = ""), plot = incidencesPlot, dpi = 96)
+  ggsave(filename = paste(path, "_withY", ".png", sep = ""), plot = incidencesPlot, dpi = 96)
+  
+  path = file.path(folderPath, paraApred$labels$title)
+  ggsave(filename = paste(path, ".jpeg", sep = ""), plot = paraApred_researchpaper, dpi = 96)
+  ggsave(filename = paste(path, ".png", sep = ""), plot = paraApred_researchpaper, dpi = 96)
+  ggsave(filename = paste(path, "-direct", ".jpeg", sep = ""), plot = paraApred_direct_researchpaper, dpi = 96)
+  ggsave(filename = paste(path, "-direct", ".png", sep = ""), plot = paraApred_direct_researchpaper, dpi = 96)
+}
+
 
 ## Run area by area
 incidencesPlotsForSeperateMOHsCM = list()
