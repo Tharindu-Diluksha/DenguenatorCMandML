@@ -9,7 +9,7 @@ Created on Sun Nov  3 15:38:16 2017
 @author: tharindu
 """
 
-file_path = "/media/tharindu/626047056046E001/FYP1/Mathematical/DenguenatorCMandML/data/"
+file_path = "/media/tharindu/626047056046E001/FYP1/Mathematical/data/"
 input_file = file_path+"DataArchive/dengue-modified-withoutlag.csv"
 df = pd.read_csv(input_file)
 
